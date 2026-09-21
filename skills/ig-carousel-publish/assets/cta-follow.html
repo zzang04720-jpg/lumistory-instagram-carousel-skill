@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<link rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; }
+  /* ── CTA도 다른 슬라이드와 동일한 플랫 #0a0a0a 배경 + 세로 중앙정렬. 후크 문구 → 카드 →
+     안내 문구 → 보조 문구를 하나의 덩어리로 보고 justify-content:center로 캔버스 중앙에 둔다.
+     word-break/line-break는 상속 속성이라 #slide에 한 번만 선언하면 모든 자식에 적용되어
+     한글이 어절 중간에서 쪼개지는 버그를 막는다. ── */
+  #slide {
+    width: 1080px;
+    height: 1350px;
+    position: relative;
+    overflow: hidden;
+    font-family: 'Pretendard', sans-serif;
+    background-image: url("__BG_IMAGE__");
+    background-size: cover;
+    background-position: center;
+    background-color: #0a0a0a;
+    color: #fff;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 90px;
+    text-align: center;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    line-break: strict;
+  }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.80);
+    z-index: 1;
+  }
+  .page-num { display: none; }
+  .headline {
+    position: relative;
+    z-index: 2;
+    font-size: 80px;
+    font-weight: 800;
+    line-height: 1.28;
+    margin: 0 0 52px 0;
+  }
+  .headline .accent { color: __ACCENT_HEX__; }
+  .card {
+    position: relative;
+    z-index: 2;
+    background: #fff;
+    border-radius: 32px;
+    width: 864px;
+    padding: 56px 48px 48px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+  }
+  .avatar {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 60px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 24px;
+    box-shadow: 0 0 0 4px __ACCENT_HEX__;
+  }
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .handle {
+    color: #1c1c1e;
+    font-size: 48px;
+    font-weight: 900;
+    margin-bottom: 32px;
+  }
+  .follow-btn {
+    width: 100%;
+    background: __ACCENT_HEX__;
+    color: #fff;
+    font-size: 36px;
+    font-weight: 800;
+    padding: 24px 0;
+    border-radius: 14px;
+    box-sizing: border-box;
+  }
+  .guide-text {
+    position: relative;
+    z-index: 2;
+    margin-top: 40px;
+    font-size: 46px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.92);
+    line-height: 1.4;
+  }
+  .small-text {
+    position: relative;
+    z-index: 2;
+    margin-top: 20px;
+    font-size: 30px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.78);
+    line-height: 1.5;
+  }
+  .small-text mark {
+    background: none;
+    color: __ACCENT_HEX__;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+  <div id="slide">
+    <div class="overlay"></div>
+    <span class="page-num">__PAGE_NUM__</span>
+    <div class="headline">__HEADLINE__</div>
+    <div class="card">
+      <div class="avatar">__AVATAR_HTML__</div>
+      <div class="handle">__HANDLE__</div>
+      <div class="follow-btn">팔로우 +</div>
+    </div>
+    <div class="guide-text">__GUIDE_TEXT__</div>
+    <div class="small-text">__SMALL_TEXT__</div>
+  </div>
+</body>
+</html>

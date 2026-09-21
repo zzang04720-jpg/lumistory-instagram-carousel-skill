@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<link rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; }
+
+  /* ── 슬라이드 전체 — flex column: 상단(라벨/페이지번호)은 고정, 그 아래(.main-block)에
+     제목+본문+요약바를 한 덩어리로 묶어 세로 중앙정렬한다. 제목만 위에 붙고 아래가 텅 빈 검정으로
+     남는 옛 문제를 막기 위해, 남는 세로 공간을 위/아래로 고르게 분산시키는 구조다. 배경은 항상
+     #0a0a0a 고정(카테고리와 무관). word-break/line-break는 상속 속성이라 #slide에 한 번만 선언하면
+     모든 자식에 적용되어 한글이 어절 중간에서 쪼개지는 버그를 막는다 (예: "필/수" 같은 글자 쪼개짐
+     방지 — word-break: break-all/break-word는 절대 쓰지 않는다). ── */
+  #slide {
+    width: 1080px;
+    height: 1350px;
+    position: relative;
+    overflow: hidden;
+    background-image: url("__BG_IMAGE__");
+    background-size: cover;
+    background-position: center;
+    background-color: #0a0a0a;
+    color: #fff;
+    box-sizing: border-box;
+    padding: 80px 72px;
+    display: flex;
+    flex-direction: column;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    line-break: strict;
+  }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.80);
+    z-index: 0;
+  }
+  .top-row, .main-block { position: relative; z-index: 1; }
+
+  /* ── 상단: 라벨(좌, 카테고리 컬러 배지) + 페이지번호(우, 흐릿하게) ── */
+  .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 44px;
+  }
+  .label {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 700;
+    font-size: 34px;
+    letter-spacing: 0.5px;
+    color: __ACCENT_HEX__;
+    background: rgba(__ACCENT_RGB__, 0.16);
+    border: 1px solid rgba(__ACCENT_RGB__, 0.5);
+    padding: 10px 24px;
+    border-radius: 999px;
+  }
+  .page-num { display: none; }
+
+  /* ── .top-row를 제외한 나머지 전체를 감싸는 래퍼
+     flex-start로 heading을 항상 main-block 상단에 고정 → label badge 겹침 방지.
+     summary-bar는 margin-top:auto로 항상 하단에 붙고, padding-bottom:80px이
+     handle-mark 위에 80px 여백을 보장한다. ── */
+  .main-block {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-bottom: 80px;
+  }
+
+  /* ── 큰 제목 — ExtraBold(800), 핵심 단어 1~2개만 포인트 컬러 ── */
+  .heading {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 900;
+    font-size: 76px;
+    line-height: 1.26;
+    color: #fff;
+    margin: 0 0 40px 0;
+    letter-spacing: -0.5px;
+  }
+  .heading .accent { color: __ACCENT_HEX__; }
+
+  /* ── 본문 영역: .main-block 안에서 컴포넌트들을 가운데로 모은다 ── */
+  .content-area {
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+  }
+
+  /* ── 숫자/금액/금리/날짜는 항상 모노스페이스로 ── */
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+  }
+
+  /* ── 본문 텍스트(단문형) — SemiBold(600) ── */
+  .body-text {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 600;
+    font-size: 42px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.9);
+  }
+  .body-text mark {
+    background: none;
+    color: __ACCENT_HEX__;
+    font-weight: 700;
+  }
+
+  /* ── 체크표 카드 (✅/❌ 한 줄씩) ── */
+  .checklist {
+    background: #15171A;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 24px;
+    padding: 40px 42px;
+  }
+  .checklist .row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 600;
+    font-size: 42px;
+    line-height: 1.45;
+    padding: 26px 0;
+  }
+  .checklist .row + .row {
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+  .checklist .row .mark { flex: none; font-size: 42px; line-height: 1.45; }
+  .checklist .row.no { color: rgba(255,255,255,0.6); }
+
+  /* ── 번호 매긴 세로 리스트카드 ── */
+  .numbered-list { margin: 0; padding: 0; }
+  .numbered-list .item {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 44px;
+  }
+  .numbered-list .item:last-child { margin-bottom: 0; }
+  .numbered-list .num {
+    flex: none;
+    width: 58px; height: 58px;
+    border-radius: 50%;
+    background: rgba(__ACCENT_RGB__, 0.16);
+    border: 1px solid rgba(__ACCENT_RGB__, 0.55);
+    color: __ACCENT_HEX__;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .numbered-list .text {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 600;
+    font-size: 42px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.92);
+  }
+  .numbered-list .text strong {
+    color: __ACCENT_HEX__;
+    font-weight: 700;
+  }
+
+  /* ── 2x3 상황별 그리드카드 ── */
+  .grid-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .grid-cards .cell {
+    background: #15171A;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px;
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .grid-cards .cell .icon { font-size: 38px; margin-bottom: 12px; }
+  .grid-cards .cell .label-sm {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 600;
+    font-size: 24px;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 8px;
+  }
+  .grid-cards .cell .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 30px;
+    color: #fff;
+  }
+
+  /* ── 표 카드 (.table-card) — 대상/금액/기간/신청법 정리용 ── */
+  .table-card {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #15171A;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  .table-card th {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 800;
+    font-size: 40px;
+    color: __ACCENT_HEX__;
+    background: rgba(__ACCENT_RGB__, 0.12);
+    text-align: left;
+    padding: 26px 28px;
+    width: 34%;
+  }
+  .table-card td {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 800;
+    font-size: 40px;
+    color: rgba(255,255,255,0.92);
+    padding: 26px 28px;
+  }
+  /* 표 안에서 특히 강조해야 하는 금액·수치는 이 클래스로 더 키운다 */
+  .table-card .big-num {
+    font-size: 48px;
+  }
+  .table-card tr + tr th, .table-card tr + tr td {
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+
+  /* ── BAD/GOOD 비교박스 (.compare-box) — 전/후, 손해/이득 대비 ── */
+  .compare-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .compare-box .col {
+    border-radius: 20px;
+    padding: 34px 28px;
+    text-align: center;
+  }
+  .compare-box .col.bad {
+    background: rgba(248,113,113,0.38);
+    border: 1.5px solid rgba(248,113,113,0.70);
+  }
+  .compare-box .col.good {
+    background: rgba(52,211,153,0.38);
+    border: 1.5px solid rgba(52,211,153,0.70);
+  }
+  .compare-box .tag {
+    display: inline-block;
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 700;
+    font-size: 38px;
+    margin-bottom: 16px;
+    padding: 8px 20px;
+    border-radius: 999px;
+  }
+  .compare-box .col.bad .tag { color: #F87171; background: rgba(248,113,113,0.16); }
+  .compare-box .col.good .tag { color: #34D399; background: rgba(52,211,153,0.16); }
+  .compare-box .big {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 54px;
+    margin-bottom: 10px;
+  }
+  .compare-box .col.bad .big { color: #F87171; }
+  .compare-box .col.good .big { color: #34D399; }
+  .compare-box .desc {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 500;
+    font-size: 24px;
+    color: rgba(255,255,255,0.7);
+  }
+
+  /* ── 예시 박스 (구체적 예시 전용) ── */
+  .example-box {
+    background: #121417;
+    border: 1.5px dashed rgba(__ACCENT_RGB__, 0.45);
+    border-radius: 20px;
+    padding: 38px 40px;
+  }
+  .example-box .example-tag {
+    display: inline-block;
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    color: __ACCENT_HEX__;
+    margin-bottom: 18px;
+  }
+  .example-box .example-text {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 600;
+    font-size: 42px;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.92);
+  }
+  .example-box .example-text strong {
+    color: __ACCENT_HEX__;
+    font-weight: 700;
+  }
+
+  /* ── 핸들 워터마크 ── */
+  .handle-mark {
+    position: absolute;
+    bottom: 40px;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 400;
+    font-size: 24px;
+    color: rgba(255,255,255,0.22);
+    z-index: 1;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── 면책 문구 / 출처 — 작은 회색 텍스트 ── */
+  .disclaimer {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 400;
+    font-size: 24px;
+    line-height: 1.6;
+    color: #9CA3AF;
+    margin-top: 18px;
+  }
+  .source-text {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 400;
+    font-size: 24px;
+    color: #6B7280;
+    margin-top: 8px;
+  }
+
+  /* ── 하단 강조 요약바 — .main-block 안의 마지막 요소로 항상 둔다 ── */
+  .summary-bar {
+    background: rgba(__ACCENT_RGB__, 0.38);
+    border: 1px solid rgba(__ACCENT_RGB__, 0.70);
+    border-radius: 16px;
+    padding: 28px 32px;
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 700;
+    font-size: 40px;
+    line-height: 1.4;
+    color: __ACCENT_HEX__;
+    margin-top: auto;
+  }
+</style>
+</head>
+<body>
+  <div id="slide">
+    <div class="overlay"></div>
+    <div class="top-row">
+      <span class="label">__LABEL__</span>
+      <span class="page-num">__PAGE_NUM__ / __TOTAL_PAGES__</span>
+    </div>
+    <div class="main-block">
+      <h1 class="heading">__HEADING__</h1>
+      <div class="content-area">
+        __BODY_HTML__
+      </div>
+      <div class="summary-bar">__SUMMARY__</div>
+    </div>
+    <div class="handle-mark">@__HANDLE__</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<link rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700&display=swap" />
+<style>
+  __FONT_FACE_CSS__
+  html, body { margin: 0; padding: 0; }
+
+  #slide {
+    width: 1080px;
+    height: 1350px;
+    position: relative;
+    overflow: hidden;
+    background: #FAF7F2;
+    color: #111;
+    box-sizing: border-box;
+    padding: 88px 80px;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Pretendard', sans-serif;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    line-break: strict;
+  }
+
+  /* ── 모서리 장식 프레임 (⌐ ¬ 느낌의 4개 브라켓) ── */
+  .corner { position: absolute; width: 46px; height: 46px; z-index: 2; }
+  .corner.tl { top: 40px; left: 40px; border-top: 6px solid __ACCENT_HEX__; border-left: 6px solid __ACCENT_HEX__; }
+  .corner.tr { top: 40px; right: 40px; border-top: 6px solid __ACCENT_HEX__; border-right: 6px solid __ACCENT_HEX__; }
+  .corner.bl { bottom: 40px; left: 40px; border-bottom: 6px solid __ACCENT_HEX__; border-left: 6px solid __ACCENT_HEX__; }
+  .corner.br { bottom: 40px; right: 40px; border-bottom: 6px solid __ACCENT_HEX__; border-right: 6px solid __ACCENT_HEX__; }
+
+  .top-row { position: relative; z-index: 1; margin-bottom: 48px; }
+  .label {
+    display: inline-block;
+    font-family: '__HANDWRITING_FONT__', 'Pretendard', sans-serif;
+    font-weight: 700;
+    font-size: 48px;
+    line-height: 1.5;
+    color: #fff;
+    background: __ACCENT_HEX__;
+    border: 3px solid #111;
+    padding: 10px 30px;
+    border-radius: 999px;
+  }
+
+  .main-block {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-bottom: 60px;
+  }
+
+  .heading {
+    font-family: '__HANDWRITING_FONT__', 'Pretendard', sans-serif;
+    font-weight: 700;
+    font-size: 94px;
+    line-height: 1.5;
+    color: #111;
+    margin: 0 0 44px 0;
+    letter-spacing: -0.5px;
+  }
+
+  .content-area { display: flex; flex-direction: column; gap: 30px; }
+
+  .mono { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+
+  .body-text {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 700;
+    font-size: 40px;
+    line-height: 1.65;
+    color: #111;
+  }
+
+  /* ── 손그림 느낌 카드: 두꺼운 검정 테두리 + 포인트색 오프셋 그림자 ── */
+  .card {
+    background: #fff;
+    border: 3px solid #111;
+    border-radius: 22px;
+    padding: 40px 42px;
+    box-shadow: 9px 9px 0 __ACCENT_HEX__;
+  }
+  .card .row {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 700;
+    font-size: 40px;
+    line-height: 1.45;
+    padding: 22px 0;
+  }
+  .card .row + .row { border-top: 2px dashed rgba(0,0,0,0.18); }
+  .card .row .mark { flex: none; font-size: 40px; line-height: 1.45; }
+
+  /* ── 체크리스트(공감형 문제제기) ── */
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    font-weight: 800;
+    font-size: 42px;
+    line-height: 1.4;
+    padding: 20px 0;
+  }
+  .check-item .box {
+    flex: none;
+    width: 48px; height: 48px;
+    border: 4px solid #111;
+    background: __ACCENT_HEX__;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 26px;
+    border-radius: 10px;
+    margin-top: 4px;
+  }
+
+  /* ── 번호 스텝 ── */
+  .step-list { margin: 0; padding: 0; }
+  .step-list .item { display: flex; align-items: flex-start; gap: 24px; margin-bottom: 40px; }
+  .step-list .item:last-child { margin-bottom: 0; }
+  .step-list .num {
+    flex: none;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: #111;
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 30px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step-list .text { font-weight: 700; font-size: 40px; line-height: 1.5; color: #111; padding-top: 6px; }
+
+  /* ── BAD/GOOD 비교박스 (라이트 버전) ── */
+  .compare-box { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .compare-box .col { border-radius: 22px; padding: 36px 28px; text-align: center; border: 3px solid #111; }
+  .compare-box .col.bad { background: #fff; }
+  .compare-box .col.good { background: __ACCENT_HEX__; }
+  .compare-box .tag {
+    display: inline-block; font-weight: 800; font-size: 34px;
+    margin-bottom: 16px; padding: 8px 22px; border-radius: 999px; border: 2.5px solid #111;
+  }
+  .compare-box .col.bad .tag { background: #fff; color: #111; }
+  .compare-box .col.good .tag { background: #111; color: #fff; }
+  .compare-box .big { display: block; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 56px; margin-bottom: 10px; color: #111; }
+  .compare-box .col.good .big { color: #fff; }
+  .compare-box .desc { font-weight: 700; font-size: 26px; color: rgba(17,17,17,0.6); }
+  .compare-box .col.good .desc { color: rgba(255,255,255,0.85); }
+
+  .footer-bar {
+    background: #111;
+    color: #fff;
+    border-radius: 18px;
+    padding: 30px 34px;
+    font-weight: 800;
+    font-size: 38px;
+    line-height: 1.4;
+    margin-top: auto;
+  }
+  .footer-bar .accent { color: __ACCENT_HEX__; }
+
+  .progress {
+    position: absolute;
+    bottom: 58px;
+    right: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 28px;
+    color: rgba(17,17,17,0.4);
+    z-index: 2;
+  }
+  .handle-mark {
+    position: absolute;
+    bottom: 58px;
+    left: 100px;
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 600;
+    font-size: 26px;
+    color: rgba(17,17,17,0.35);
+    z-index: 2;
+  }
+</style>
+</head>
+<body>
+  <div id="slide">
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+    <div class="top-row">
+      <span class="label">__LABEL__</span>
+    </div>
+    <div class="main-block">
+      <h1 class="heading">__HEADING__</h1>
+      <div class="content-area">
+        __BODY_HTML__
+      </div>
+      <div class="footer-bar">__SUMMARY__</div>
+    </div>
+    <div class="handle-mark">@__HANDLE__</div>
+    <div class="progress">__PAGE_NUM__/__TOTAL_PAGES__</div>
+  </div>
+</body>
+</html>
