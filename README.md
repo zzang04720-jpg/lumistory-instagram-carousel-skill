@@ -22,7 +22,7 @@ python -m venv .venv
 copy .env.example .env      # Mac/Linux: cp .env.example .env
 ```
 `.env`에 본인의 값을 채웁니다 (절대 커밋 금지, `.gitignore`에 포함됨):
-`SITE_URL`(카드뉴스로 만들 글이 올라오는 본인 사이트, RSS `/rss.xml` 필요), `IG_ACCESS_TOKEN`, `IG_BUSINESS_ACCOUNT_ID`, `CLOUDINARY_*`, `PEXELS_API_KEY`(선택).
+`SITE_URL`(카드뉴스로 만들 글이 올라오는 본인 사이트, RSS `/rss.xml` 필요), `IG_ACCESS_TOKEN`, `IG_BUSINESS_ACCOUNT_ID`(같은 값을 `IG_USER_ID`에도 적기 — 코드는 이 이름으로 읽습니다), `CLOUDINARY_*`, `PEXELS_API_KEY`(선택).
 인스타 API 발급 절차는 `skills/ig-carousel-publish/references/setup.md` 참고.
 
 ## 사용
@@ -35,3 +35,6 @@ copy .env.example .env      # Mac/Linux: cp .env.example .env
 - 발행은 항상 미리보기 확인 후 진행합니다. 실제 게시는 되돌릴 수 없습니다.
 - 인스타그램/Meta 정책과 API 사용 약관은 사용자 책임으로 준수하세요.
 - `.env`의 `SITE_URL`에 본인 사이트 주소를 넣어야 실행됩니다 (`{SITE_URL}/rss.xml` 에서 글 목록을 읽습니다).
+
+## 뼈대로 쓰기
+이 저장소는 완성품이 아니라 **용도에 맞게 AI가 고쳐 쓰는 뼈대**입니다. 바뀌는 곳은 소재를 가져오는 부분뿐이고, 카드 만들기·업로드·발행·중복 방지·예약은 그대로 씁니다. 기본 화면(`app.py`)은 루미스토리 스킬 글을 읽도록 만들어져 있어, 워드프레스·블로거 같은 내 블로그나 네이버 검색 결과, 붙여 넣은 글로 바꾸려면 `lumistory_cards.py`의 글 읽기 부분을 고치면 됩니다. 자세한 예시는 `skills/ig-carousel-publish/SKILL.md`의 "이 스킬은 뼈대다"를 보세요. `publish_pipeline.py --keyword`와 SKILL.md의 1~2단계는 정부 지원금 공고 버전(예시)입니다.
