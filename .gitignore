@@ -5,3 +5,6 @@ __pycache__/
 browsers/
 out/
 *.log
+published_log.json
+dm_sent_log.json
+auto_publish_status.json

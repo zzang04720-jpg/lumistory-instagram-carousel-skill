@@ -36,6 +36,8 @@ def load_manifest(path: str | Path) -> tuple[Path, dict]:
         raise ValueError("지원하지 않는 카드뉴스 정보입니다.")
     if not str(data["article"].get("url", "")).startswith(SITE + "/skills/"):
         raise ValueError("루미스토리 스킬 글에서 만든 카드뉴스만 발행할 수 있습니다.")
+    if data.get("status") not in {"preview", "staged", "published"}:
+        raise ValueError("올바른 미리보기/발행 상태가 아닙니다.")
     images = [Path(value).resolve() for value in data.get("images", [])]
     if not 3 <= len(images) <= 10 or any(not image.is_file() for image in images):
         raise ValueError("발행할 PNG 카드가 3~10장 모두 준비되어 있어야 합니다.")

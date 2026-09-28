@@ -23,7 +23,7 @@ def main() -> None:
         return
     template = next_template_number()
     log_line(f"루미스토리 자동 발행 시작: {article.title} / 템플릿 {template:02d}")
-    manifest = render_carousel(article, template)
+    manifest = render_carousel(article, template, include_dm=os.environ.get("IG_INCLUDE_DM_CTA") == "1")
     stage_manifest(manifest)
     post_id = publish_manifest(manifest)
     log_line(f"루미스토리 자동 발행 완료: {article.title} / post_id={post_id}")

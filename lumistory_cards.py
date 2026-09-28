@@ -23,7 +23,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
-SITE = os.environ.get("SITE_URL", "").strip().rstrip("/")
+SITE = os.environ.get("SITE_URL", "https://lumiestorytech.com").strip().rstrip("/")
 if not SITE.startswith("https://"):
     raise RuntimeError("SITE_URL is not set. Add SITE_URL=https://your-site.example to .env (see .env.example).")
 RSS = f"{SITE}/rss.xml"
@@ -74,7 +74,7 @@ def _normalize(value: str) -> str:
     # A few display fonts deliberately contain only Korean/Latin letter forms.
     # Normalise punctuation here so a missing glyph never becomes a □ on a card.
     value = (value or "").translate(str.maketrans({
-        "“": "", "”": "", "‘": "", "’": "", "·": "/", "→": "다음",
+        "“": "", "”": "", "‘": "", "’": "", "·": "/", "→": "다음", "…": "...", "–": "-", "—": "-", "•": "-",
     }))
     return " ".join(value.split())
 
@@ -112,14 +112,18 @@ def _section_items(soup: BeautifulSoup, heading: str) -> list[str]:
     for node in soup.select("article h2, article h3"):
         if _normalize(node.get_text(" ", strip=True)) != heading:
             continue
-        parent = node.parent
-        if parent is None:
-            continue
-        items = parent.find_all("li", recursive=False)
-        if not items:
-            ul = parent.find("ul", recursive=False) or parent.find("ol", recursive=False)
-            items = ul.find_all("li", recursive=False) if ul else []
-        return [_normalize(item.get_text(" ", strip=True)) for item in items]
+        level = int(node.name[1])
+        items, subheadings = [], []
+        for child in node.find_all_next():
+            if child.name in ("h1", "h2", "h3"):
+                if int(child.name[1]) <= level:
+                    break
+                subheadings.append(_normalize(child.get_text(" ", strip=True)))
+            if child.name == "li" and not child.find_parent("li"):
+                # Prefer concise source labels to pasted commands and code blocks.
+                label = child.find("strong")
+                items.append(_normalize((label or child).get_text(" ", strip=True)))
+        return items or subheadings
     return []
 
 
@@ -150,7 +154,16 @@ def fetch_article(url: str, session: requests.Session | None = None) -> Article:
     why, _ = easy_block("왜 필요한가요?")
     _, scenes = easy_block("이럴 때 도움이 돼요")
     not_for, _ = easy_block("이런 분은 안 써도 괜찮아요")
-    steps = _section_items(soup, "따라 하기")
+    steps = []
+    first_time_headings = [
+        _normalize(node.get_text(" ", strip=True))
+        for node in soup.select("article h2, article h3")
+        if _normalize(node.get_text(" ", strip=True)).startswith("처음 받았다면")
+    ]
+    for heading in ("따라 하기", *first_time_headings, "설치부터 첫 카드뉴스까지", "사용 방법", "시작하기", "설치하기"):
+        steps = _section_items(soup, heading)
+        if steps:
+            break
     outcomes = _section_items(soup, "이렇게 되면 성공이에요")
     link = soup.select_one(".skill-download a.file-button")
     download = None
@@ -183,42 +196,7 @@ def _short(value: str, limit: int = 86) -> str:
     return (cut or value[:limit]).rstrip("., ") + "…"
 
 
-def build_slides(article: Article) -> list[Slide]:
-    if article.slug == "automate-this":
-        # The source page itself names report copy/paste, bulk file renaming,
-        # and moving web data into tables. Lead with those recognisable pains
-        # instead of a generic summary so the first card earns the swipe.
-        return [
-            Slide("cover", "STOP SCROLLING", "AI 쓰는데도\n아직 야근하세요?", [
-                "ChatGPT를 켜도 일이 안 줄어드는 진짜 이유",
-            ]),
-            Slide("body", "01 / HARD TRUTH", "채팅만 하면\n자동화가 아닙니다", [
-                "내 업무에 AI를 붙이지 못하면, 결국 내가 계속 복사하고 붙여넣게 됩니다.",
-            ]),
-            Slide("body", "02 / CHECK YOUR WORK", "이 3개 아직\n직접 하고 있어요?", [
-                "보고서 파일 열고 복사·붙여넣기",
-                "폴더 안 파일 이름 하나씩 바꾸기",
-                "사이트 자료를 표에 옮겨 적기",
-            ]),
-            Slide("body", "03 / THE TURNING POINT", "설명하지 말고\n화면을 보여주세요", [
-                "처음부터 끝까지 작업 화면을 한 번 녹화",
-                "AI가 업무 순서를 먼저 읽도록 만들기",
-                "자동화할 수 있는 작은 일부터 찾기",
-            ]),
-            Slide("body", "04 / START SMALL", "하나만 줄어도\n매주는 달라집니다", [
-                "첫날부터 전부 바꾸지 마세요. 가장 자주 반복하는 한 작업부터 시험하면 됩니다.",
-            ]),
-            Slide("body", "05 / FREE GUIDE", "일 잘하는 사람은\n이렇게 시킵니다", [
-                "AI에게 보여줄 업무 화면 고르기",
-                "처음 보내는 요청 문장",
-                "실행 전 확인할 체크포인트",
-            ]),
-            Slide("cta", "FREE SKILL GUIDE", "무료 가이드\n받는 방법", [
-                "루미스토리 인스타그램 팔로우",
-                "댓글에 무료파일이라고 남기기",
-                "DM으로 가이드 링크 받기",
-            ]),
-        ]
+def build_slides(article: Article, *, include_dm: bool = False) -> list[Slide]:
     # Claims on cards are direct, shortened excerpts from the published page.
     # Headings are editorial signposts, not additional factual claims.
     source_title = article.eyebrow or article.title
@@ -230,11 +208,17 @@ def build_slides(article: Article) -> list[Slide]:
         Slide("body", "04 · HOW", "시작은 이렇게", [_short(x, 83) for x in article.steps[:3]] or [_short(article.one_line, 105)]),
         Slide("body", "05 · CHECK", "시작 전 꼭 확인", [_short(article.not_for, 155)] if article.not_for else [_short(article.description, 100)]),
     ]
-    if article.download_url:
+    if article.download_url and include_dm:
         slides.append(Slide("cta", "FREE SKILL GUIDE", "무료 가이드, 팔로우하고 댓글", [
             "루미스토리 인스타그램 팔로우",
             "댓글에 무료파일이라고 남기기",
             "DM으로 사이트 링크 받기",
+        ]))
+    elif article.download_url:
+        slides.append(Slide("cta", "LUMIESTORY GUIDE", "가이드와 설치 안내", [
+            f"루미스토리에서 {article.title} 글 열기",
+            "글 아래 다운로드 안내 확인",
+            "설치 방법과 원본 링크 확인",
         ]))
     else:
         slides.append(Slide("cta", "LUMIESTORY GUIDE", "설치·사용법은 사이트에서", [
@@ -245,33 +229,20 @@ def build_slides(article: Article) -> list[Slide]:
     return slides
 
 
-def build_caption(article: Article) -> str:
-    if article.slug == "automate-this":
-        return (
-            "AI를 쓰는데도 일이 안 줄어든다면, AI가 아니라 ‘사용 방식’이 문제일 수 있습니다.\n\n"
-            "ChatGPT를 켜고 질문하는 것만으로는 반복 업무가 사라지지 않아요.\n"
-            "내가 실제로 하는 작업을 AI가 볼 수 있어야, 어디부터 줄일지 함께 정리할 수 있습니다.\n\n"
-            "긴 설명 대신 작업 화면을 처음부터 끝까지 한 번 녹화해 보세요.\n"
-            "그다음 가장 작은 반복 작업 하나부터 자동화 가능성을 확인하면 됩니다.\n\n"
-            "✓ 매주 보고서 파일 복사·붙여넣기\n"
-            "✓ 폴더 안 파일 이름 바꾸기\n"
-            "✓ 사이트 자료를 표에 옮겨 적기\n\n"
-            "팔로우한 뒤 댓글에 무료파일이라고 남겨 주세요.\n"
-            "DM으로 가이드 링크를 보내드려요.\n\n"
-            "#루미스토리 #AI스킬 #업무자동화 #반복업무 #AI활용"
-        )
+def build_caption(article: Article, *, include_dm: bool = False) -> str:
     intro = _short(article.eyebrow or article.title, 70)
     scenes = "\n".join(f"• {_short(scene, 70)}" for scene in article.scenes[:3])
     action = (
         "무료 파일 안내와 설치 방법은 아래 루미스토리 글에서 확인할 수 있어요."
         if article.download_url else "이 글에는 사이트 ZIP 보관본이 없습니다. 설치 방법과 원본 링크를 확인해 주세요."
     )
+    dm_line = "댓글에 무료파일이라고 남겨 주세요. DM으로 글 링크를 보내드려요.\n\n" if include_dm and article.download_url else ""
     return (
         f"{intro}\n\n"
         f"이런 일에 도움이 되는 스킬입니다.\n{scenes}\n\n"
         f"{_short(article.one_line, 180)}\n\n"
         f"{action}\n{article.url}\n\n"
-        "팔로우한 뒤 댓글에 무료파일이라고 남겨 주세요. DM으로 이 글 링크를 보내드려요.\n\n"
+        f"{dm_line}"
         "원문을 읽고 정리한 안내이며, 실제 실행 결과를 보장하지 않습니다.\n"
         "#루미스토리 #AI스킬 #업무자동화 #AI활용 #스킬가이드"
     )
@@ -288,6 +259,7 @@ def _font(theme_index: int, size: int, body: bool = False) -> ImageFont.FreeType
 def _wrap(draw: ImageDraw.ImageDraw, value: str, font: ImageFont.FreeTypeFont, width: int) -> list[str]:
     lines: list[str] = []
     for paragraph in str(value).splitlines():
+        paragraph = _normalize(paragraph)
         current = ""
         for word in paragraph.split():
             candidate = f"{current} {word}".strip()
@@ -392,7 +364,7 @@ def render_slide(slide: Slide, theme_number: int, index: int, total: int) -> Ima
     # Header, title, content and footer form the same reading order across
     # styles, while motif, palette and actual Korean headline face all rotate.
     label_fill = ink if t not in (4, 9) else accent
-    d.text((left, top), slide.kicker, font=_font(3, 37, body=True), fill=label_fill)
+    d.text((left, top), _normalize(slide.kicker), font=_font(3, 37, body=True), fill=label_fill)
     if t == 7:
         d.rounded_rectangle((left-20, top+76, right+13, top+507), radius=38, fill="#FFFFFF")
     title_top = top + 96
@@ -448,10 +420,10 @@ def render_slide(slide: Slide, theme_number: int, index: int, total: int) -> Ima
     return im
 
 
-def render_carousel(article: Article, theme_number: int, output_root: Path = OUTPUT) -> Path:
-    slides = build_slides(article)
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    folder = output_root / f"{stamp}-{article.slug}-t{theme_number:02d}"
+def render_carousel(article: Article, theme_number: int, output_root: Path = OUTPUT, *, include_dm: bool = False) -> Path:
+    slides = build_slides(article, include_dm=include_dm)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    folder = Path(output_root).resolve() / f"{stamp}-{article.slug}-t{theme_number:02d}"
     folder.mkdir(parents=True, exist_ok=False)
     image_paths = []
     for index, slide in enumerate(slides, 1):
@@ -466,7 +438,8 @@ def render_carousel(article: Article, theme_number: int, output_root: Path = OUT
         "template_name": THEMES[theme_number-1][0],
         "slides": [asdict(slide) for slide in slides],
         "images": image_paths,
-        "caption": build_caption(article),
+        "caption": build_caption(article, include_dm=include_dm),
+        "include_dm": include_dm,
         "status": "preview",
     }
     path = folder / "manifest.json"

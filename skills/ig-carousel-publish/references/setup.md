@@ -1,131 +1,19 @@
-# 최초 1회 설정 가이드 (수강생용)
+# 발행 계정 설정
 
-이 스킬을 처음 쓰는 수강생은 본인 명의의 Cloudinary 계정 + Instagram(Meta) 앱을 직접 만들어야
-한다. **계정 생성, 약관 동의, 권한(OAuth) 수락처럼 본인 인증이 필요한 클릭은 반드시 수강생 본인이
-직접 한다 — Claude가 대신 클릭하거나 계정을 만들어주지 않는다.** Claude는 화면을 같이 보면서
-어디를 눌러야 하는지 안내하고, 발급받은 값을 `.env` 파일에 정리해서 넣어주는 역할까지만 한다.
+미리보기에는 계정이 필요하지 않다. 공개 발행을 준비할 때만 루트 `.env.example`을 `.env`로 복사해 자신의 값을 채운다.
 
-> **참고 — Claude in Chrome / 카카오 나에게 보내기는 이 설정과 별개다.**
-> 수강생이 "클로드 포 크롬"과 카카오 "나에게 보내기"(나챗)를 이미 설정해 놨더라도, 그것만으로는
-> 인스타그램에 글을 올릴 수 없다. Claude in Chrome은 *브라우저를 대신 조작하는 도구*이고 나챗은
-> *알림을 보내는 도구*일 뿐, 둘 다 인스타그램이 요구하는 "발행 권한"을 주지는 않는다. 발행 권한은
-> 아래 B번 순서대로 발급받는 Instagram 액세스 토큰(Graph API)으로만 얻을 수 있다 — 이 단계는
-> 생략할 수 없다.
->
-> 참고로 "인스타그램에 크롬으로 로그인해서 그 세션만 저장해두면 그걸로 올릴 수 있지 않냐"는
-> 방법도 이론적으로는 가능하다 (Claude in Chrome이 instagram.com 웹 화면을 클릭해서 올리는 방식).
-> 하지만 권장하지 않는다 — ① 화면 구조가 자주 바뀌어 잘 깨지고, ② 로그인 세션으로 자동 반복 작업을
-> 하면 인스타그램이 봇으로 의심해 계정에 일시 제한을 걸 위험이 있고, ③ 그 방식이어도 마지막 "공유"
-> 버튼을 누르는 순간은 여전히 되돌릴 수 없는 공개 행동이라 매번 확인이 필요한 건 똑같다 — 즉
-> 설정 단계를 줄여주지도 못한다. 그래서 이미 검증된 Graph API 토큰 방식을 그대로 쓴다.
+| 이름 | 용도 |
+|---|---|
+| SITE_URL | 기본 `https://lumiestorytech.com`, 같은 HTML 구조를 가진 사이트만 대체 가능 |
+| IG_USER_ID | 게시할 Instagram 계정 ID |
+| IG_ACCESS_TOKEN | 해당 계정과 발행 권한을 가진 토큰 |
+| GRAPH_VERSION | 사용할 Graph API 버전, 기본값 v21.0 |
+| CLOUDINARY_CLOUD_NAME | 이미지 업로드 대상 |
+| CLOUDINARY_API_KEY | Cloudinary API 키 |
+| CLOUDINARY_API_SECRET | Cloudinary 서명 비밀값 |
 
-이 문서는 두 파트로 나뉜다.
-- **A. Cloudinary 설정** (이미지를 인스타그램이 읽을 수 있는 URL로 올리기 위한 중간 저장소)
-- **B. Instagram(Meta) 설정** (실제 발행 권한)
+이 코드는 `graph.instagram.com` 경로의 Instagram Login API 방식을 사용한다. 다른 로그인 방식의 토큰과 계정 ID를 임의로 혼합하지 않는다. 계정 종류·권한·앱 모드·승인 상태·토큰 만료와 API 버전은 Meta 개발자 화면에서 현재 계정에 맞게 확인한다. 댓글 DM에는 별도의 메시징 지원 및 권한이 필요하다.
 
-설정이 끝나면 `insta_auto/.env` 파일에 아래 5개 값이 모두 채워져 있어야 한다.
-```
-IG_ACCESS_TOKEN=
-IG_BUSINESS_ACCOUNT_ID=
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-```
+참고: [Instagram Platform 공식 문서](https://developers.facebook.com/docs/instagram-platform/), [Cloudinary 업로드 문서](https://cloudinary.com/documentation/image_upload_api_reference).
 
----
-
-## A. Cloudinary 설정 (약 3분)
-
-1. **(수강생 직접)** [cloudinary.com](https://cloudinary.com) 접속 → 무료 가입(Sign up free). 이메일
-   또는 Google 계정으로 가입 — 계정 생성은 본인 인증이 필요하므로 수강생이 직접 진행한다.
-2. 가입 완료 후 대시보드(Dashboard) 좌측 또는 상단의 **API Keys** (또는 Settings → API Keys)
-   메뉴로 이동.
-3. 다음 3개 값을 확인:
-   - **Cloud name**
-   - **API Key**
-   - **API Secret** ("Reveal" 또는 눈 모양 아이콘을 눌러야 보일 수 있음)
-4. 이 3개 값을 그대로 Claude에게 붙여넣기로 전달 → Claude가 `.env`의
-   `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`에 기록한다.
-
-무료 플랜으로도 카드뉴스용 이미지 업로드는 충분하다(월 25 크레딧, 1크레딧당 변환 1,000회 ·
-저장1GB·전송1GB 제공).
-
----
-
-## B. Instagram(Meta) 설정 (약 10~15분, 가장 까다로운 부분)
-
-2026년 기준 Instagram에 프로그램으로 글을 올리려면 **① 비즈니스/크리에이터 계정 + 페이지 연결,
-② Meta 개발자 앱, ③ 권한 수락, ④ 액세스 토큰 발급** 4단계가 필요하다. 아래 순서대로 진행한다.
-
-### B-1. 인스타그램을 비즈니스(또는 크리에이터) 계정으로 전환 — (수강생 직접)
-1. 인스타그램 앱 → 프로필 → 설정 → 계정 유형 전환에서 **"비즈니스 계정"** 또는 **"크리에이터 계정"**
-   으로 전환한다 (이미 돼 있으면 건너뜀).
-2. 연결된 Facebook 페이지가 없다면 페이지를 하나 만들어 연결한다(이미 있으면 건너뜀). 인스타그램
-   API는 반드시 Facebook 페이지에 연결된 비즈니스/크리에이터 계정에서만 동작한다.
-
-### B-2. Meta 개발자 앱 생성 — (로그인은 수강생, 나머지 클릭은 Claude in Chrome이 대행)
-1. **(수강생 직접)** [developers.facebook.com](https://developers.facebook.com)을 본인 크롬에서 열고
-   본인 Facebook 계정으로 로그인한다. 로그인(비밀번호 입력)은 본인 인증이라 Claude가 대신 할 수
-   없는 부분이라 수강생이 직접 한다.
-2. 로그인이 끝나면 그 다음부터는 Claude in Chrome이 화면을 보면서 대행한다 (수강생은 옆에서
-   보고만 있으면 됨):
-   - **My Apps → Create App** → 앱 유형 "Business" 선택 → 앱 이름 입력 → 생성
-   - 앱 대시보드에서 **Instagram** 제품 **Set up**(추가)
-   - 앱 설정 → **권한(Permissions) 탭**에서 `instagram_business_basic`,
-     `instagram_business_content_publish` 두 권한을 요청 목록에 추가
-   - 이 클릭들은 OAuth 동의가 아니라 단순 앱 설정(이름 입력, 메뉴 클릭)이라 Claude가 대신 진행해도
-     문제가 없다 — 로그인과 아래 B-3의 동의 클릭만 수강생 고유의 행동이다.
-   (앱이 아직 "개발 모드"면 본인 계정으로는 바로 테스트 가능. 다른 사람 계정까지 쓰려면 앱 심사가
-   필요하지만, 본인 카드뉴스 자동발행 목적이면 개발 모드로 충분하다.)
-
-### B-3. 권한 수락(승인) — ★반드시 수강생 본인이 클릭★
-1. Meta가 제공하는 **"Instagram 비즈니스 로그인"** 링크(또는 앱 대시보드의 테스트용 로그인 URL)를
-   본인 브라우저에서 열고, 본인 Instagram/Facebook 계정으로 로그인한다.
-2. 권한 동의 화면이 뜨면 **"계속/허용(Continue/Allow)"을 수강생 본인이 직접 클릭**한다. 이 동의
-   클릭은 계정 소유자만 할 수 있는 행동이라 Claude가 대신 누르지 않는다 — Claude는 "지금 이 화면이
-   보이면 허용을 눌러주세요"라고 안내만 한다.
-3. 동의가 끝나면 리디렉션된 URL에 `code=...` 값이 붙어 있다. 이 코드를 복사해 Claude에게 전달한다.
-
-### B-4. 액세스 토큰 발급 — (Claude가 API 호출로 대행)
-1. 수강생이 전달한 `code`를 받아 Claude가 토큰 교환 API를 호출해 **단기 토큰(1시간)** →
-   **장기 토큰(60일)**으로 교환한다 (`references/publish.md`의 토큰 교환 호출 참고, 또는 Meta
-   공식 문서의 long-lived token 교환 엔드포인트 사용).
-2. Claude가 발급된 장기 토큰을 `.env`의 `IG_ACCESS_TOKEN`에 기록한다.
-3. **60일마다 토큰이 만료**되므로, 만료 1주 전쯴 다시 교환이 필요하다는 점을 수강생에게 안내한다
-   (스킬 실행 시 토큰 만료 여부를 먼저 점검하는 것을 권장 — 아래 "사전 점검" 참고).
-
-### B-5. Instagram Business Account ID 확인 — (Claude가 API 호출로 대행)
-1. 발급된 토큰으로 연결된 Facebook 페이지 ID를 조회한다.
-2. `GET /{page-id}?fields=instagram_business_account&access_token=...` 호출 결과에서
-   `instagram_business_account.id` 값을 가져온다.
-3. 이 값을 `.env`의 `IG_BUSINESS_ACCOUNT_ID`에 기록한다.
-
----
-
-## 사전 점검 (스킬 실행 전 매번 자동 확인)
-
-스킬을 실행할 때마다 아래를 먼저 확인한다.
-1. `insta_auto/.env`에 5개 값이 모두 있는가? → 하나라도 없으면 이 문서를 보고 부족한 부분만
-   다시 안내한다 (전체를 처음부터 다시 시키지 않는다).
-2. `IG_ACCESS_TOKEN`이 살아있는가? → 가벼운 API 호출(`GET /me?access_token=...`)로 확인 후,
-   401/만료 오류가 나면 B-3~B-4를 다시 안내한다 (이때도 권한 재동의 클릭은 수강생 본인이 한다).
-3. 위 확인이 끝나면 본 SKILL.md의 1단계(정보 수집)부터 정상 진행한다.
-
-## 요약: 누가 무엇을 하는가
-
-| 단계 | 수강생이 직접 | Claude가 대행 |
-|---|---|---|
-| Cloudinary 계정 생성 | ✅ (가입 클릭 — 계정 생성은 항상 본인) | — |
-| Cloudinary 키 3종 발급 확인 | ✅ (대시보드에서 보기) | 받은 값을 .env에 기록 |
-| 인스타 비즈니스 전환 / 페이지 연결 | ✅ (모바일 앱 설정) | — |
-| Facebook 로그인 | ✅ ★필수★ (비밀번호 입력은 본인만) | — |
-| Meta 앱 생성 / Instagram 제품 추가 / 권한 목록 추가 | 옆에서 확인만 | ✅ Claude in Chrome이 클릭 대행 |
-| 권한 동의(허용) 클릭 | ✅ ★필수★ (OAuth 동의는 항상 본인) | — |
-| 코드 → 액세스 토큰 교환 | — | ✅ (API 호출) |
-| IG Business Account ID 조회 | — | ✅ (API 호출) |
-| 카드뉴스 생성·발행 | 매번 "발행해도 될까요?" 확인 1회 | ✅ 나머지 전부 |
-
-수강생이 실제로 직접 손대는 건 정리하면 4가지뿐이다: ① Cloudinary 가입(계정 생성), ② Facebook
-로그인(비밀번호 입력), ③ Meta 권한 동의 화면의 "허용" 클릭, ④ 매 발행 전 "발행해도 될까요?"에
-대한 답장. 이 4가지는 본인 인증·소유권·최종 승인이 걸려 있어 Claude가 대신 할 수 없는 행동이고,
-나머지(앱 설정 클릭, 토큰 교환, ID 조회, 카드뉴스 제작·업로드)는 전부 Claude가 처리한다.
+토큰을 채팅·로그·스크린샷·Git에 남기지 않는다. doctor 성공은 토큰이나 발행 API 성공을 의미하지 않는다. 본 저장소의 자동 테스트는 실계정에 게시하지 않는다.

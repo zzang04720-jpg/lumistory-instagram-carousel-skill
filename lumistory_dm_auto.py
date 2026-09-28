@@ -93,6 +93,7 @@ def main() -> None:
                 "source_url": str(post["source_url"]),
                 "sent_at": datetime.now(timezone.utc).isoformat(),
             })
+            sent_comment_ids.add(comment_id)
             _write(SENT_PATH, sent)  # write immediately to prevent duplicate DM after a later failure
             print(f"DM SENT comment={comment_id}")
 
